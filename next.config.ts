@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  reactStrictMode: false, // إيقاف التحميل المزدوج (Hot-Reload) العنيف لحماية كارت الشاشة
 };
 
 export default nextConfig;
