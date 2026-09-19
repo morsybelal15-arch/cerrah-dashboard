@@ -1,236 +1,252 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
-import { ChevronLeft, ChevronRight, Sparkles, X, Dna, Sliders, ScanFace, ActivitySquare, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Activity, User, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import CerrahAvatar from './CerrahAvatar';
 
-// 1. استيراد واجهة الخصائص بوضوح
-import type { AvatarProps } from './CerrahAvatar';
+export default function BodySimulator({ bmiResult, showAvatarModal, setShowAvatarModal }: any) {
+  // === نظام معالج الخطوات (Wizard) ===
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 5;
 
-// 2. تمرير الخصائص لدالة dynamic واستخدام المسار النسبي
-const Avatar3D = dynamic<AvatarProps>(() => import('./CerrahAvatar'), { 
-  ssr: false, 
-  loading: () => null 
-});
-
-interface BodySimulatorProps {
-  bmiResult: number;
-  showAvatarModal: boolean;
-  setShowAvatarModal: (val: boolean) => void;
-}
-
-
-const BodySimulator = ({ bmiResult, showAvatarModal, setShowAvatarModal }: BodySimulatorProps) => {
-  const [step, setStep] = useState(1);
-  const [isBuilding, setIsBuilding] = useState(false);
-  const [loadingText, setLoadingText] = useState("");
-
-  // البيانات الأساسية
-  const [avatarGender, setAvatarGender] = useState<'male' | 'female'>('female');
-  const [avatarSkinTone, setAvatarSkinTone] = useState('#e2b999');
-  const [avatarWeight, setAvatarWeight] = useState(75);
-  const [avatarHeight, setAvatarHeight] = useState(170);
-
-  // Morph Targets
-  const [morphs, setMorphs] = useState({
-    bellyRound: 0, bellyLower: 0, bellyUpper: 0, loveHandles: 0,
-    doubleChin: 0, chestSag: 0, armsFat: 0, armsSag: 0, 
-    thighsFat: 0, calvesFat: 0, glutesFat: 0
+  const [avatarProps, setAvatarProps] = useState({
+    gender: 'female' as 'male' | 'female',
+    weight: 75,
+    height: 170,
+    skinTone: '#e8b89c',
+    bellyRound: 0, bellyLower: 0, bellyUpper: 0,
+    loveHandles: 0, doubleChin: 0, chestSag: 0,
+    armsFat: 0, armsSag: 0, thighsFat: 0, calvesFat: 0, glutesFat: 0,
+    hasStretchMarks: false, hasCellulite: false
   });
 
-  // Textures
-  const [hasStretchMarks, setHasStretchMarks] = useState(false);
-  const [hasCellulite, setHasCellulite] = useState(false);
+  const skinTones = ['#fcdbc4', '#e8b89c', '#d39972', '#a06540', '#63371f'];
 
-  useEffect(() => {
-    if (showAvatarModal) { setStep(1); setIsBuilding(false); }
-  }, [showAvatarModal]);
+  // عناوين المراحل
+  const stepTitles = [
+    { title: "تحديد الجنس", desc: "اختر نوع المجسم" },
+    { title: "القياسات الأساسية", desc: "الوزن والطول الفعلي" },
+    { title: "لون البشرة", desc: "اختر الدرجة الأقرب لك" },
+    { title: "نحت الجذع والبطن", desc: "تخصيص نسب الدهون" },
+    { title: "الأطراف والجلد", desc: "تفاصيل الذراعين والقدمين" }
+  ];
 
-  const handleClose = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowAvatarModal(false);
+  const handleNext = () => {
+    if (currentStep < totalSteps) setCurrentStep(prev => prev + 1);
+    else setShowAvatarModal(false); // حفظ وإنهاء
   };
 
-  const updateMorph = (key: keyof typeof morphs, value: number) => {
-    setMorphs(prev => ({ ...prev, [key]: value }));
+  const handlePrev = () => {
+    if (currentStep > 1) setCurrentStep(prev => prev - 1);
   };
-
-  const startBuildingAvatar = () => {
-    setIsBuilding(true);
-    setLoadingText("جاري دمج القياسات وتشكيل الهيكل المخصص...");
-    setTimeout(() => setLoadingText("تطبيق ملمس الجلد والأبعاد الواقعية..."), 1500);
-    setTimeout(() => { setIsBuilding(false); setStep(4); }, 3500);
-  };
-
-  const renderSlider = (label: string, stateKey: keyof typeof morphs, desc: string) => (
-    <div className="bg-black/20 border border-white/5 p-5 rounded-2xl mb-4 transition-all hover:border-[#8DC63F]/30">
-      <div className="flex justify-between items-end mb-3">
-        <div>
-          <label className="text-white font-black text-sm block">{label}</label>
-          <span className="text-[10px] text-green-100/50 font-bold">{desc}</span>
-        </div>
-        <span className="text-[#8DC63F] font-black text-sm">{morphs[stateKey]}%</span>
-      </div>
-      <input 
-        type="range" min="0" max="100" value={morphs[stateKey]}
-        onChange={(e) => updateMorph(stateKey, Number(e.target.value))}
-        className="w-full accent-[#8DC63F] h-2 bg-black/60 rounded-lg appearance-none cursor-pointer"
-      />
-    </div>
-  );
 
   return (
     <>
-      <div className="glass-card rounded-3xl p-7 flex-1 flex flex-col relative overflow-hidden min-h-[400px]">
-        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none z-0"></div>
-        <div className="flex-1 flex justify-center items-center relative w-full h-full z-10">
-          <Avatar3D 
-            gender={avatarGender} weight={avatarWeight} height={avatarHeight} skinTone={avatarSkinTone}
-            bellyRound={morphs.bellyRound / 100} bellyLower={morphs.bellyLower / 100} bellyUpper={morphs.bellyUpper / 100}
-            loveHandles={morphs.loveHandles / 100} doubleChin={morphs.doubleChin / 100} chestSag={morphs.chestSag / 100}
-            armsFat={morphs.armsFat / 100} armsSag={morphs.armsSag / 100} thighsFat={morphs.thighsFat / 100}
-            calvesFat={morphs.calvesFat / 100} glutesFat={morphs.glutesFat / 100}
-            hasStretchMarks={hasStretchMarks} hasCellulite={hasCellulite}
-          />
+      {/* ================= زرار فتح المحاكي في الصفحة ================= */}
+      <div className="glass-card rounded-[24px] flex-1 flex flex-col p-4 relative overflow-hidden group border border-[#8DC63F]/20">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10"></div>
+        <div className="flex-1 bg-black/40 rounded-xl relative overflow-hidden flex items-center justify-center min-h-[250px]">
+           <div className="absolute inset-0 pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-500">
+             <CerrahAvatar {...avatarProps} />
+           </div>
         </div>
-        <button onClick={(e) => { e.stopPropagation(); setShowAvatarModal(true); }} className="btn-glow btn-glow-gold w-full flex justify-between items-center px-6 py-4 rounded-[20px] text-sm font-extrabold shadow-lg z-20 mt-6 border-none">
-          إنشاء وتخصيص المجسم الخاص بك <ChevronLeft size={20}/>
-        </button>
+        <div className="relative z-20 mt-4">
+          <button 
+            onClick={() => { setShowAvatarModal(true); setCurrentStep(1); }}
+            className="w-full bg-[#0a1a0a] hover:bg-[#8DC63F] text-[#8DC63F] hover:text-black border border-[#8DC63F]/30 py-3.5 rounded-xl font-black text-sm flex items-center justify-between px-5 transition-all duration-300 shadow-lg"
+          >
+            <span>إنشاء وتخصيص المجسم الخاص بك</span>
+            <ChevronLeft size={18} />
+          </button>
+        </div>
       </div>
 
+      {/* ================= نافذة المحاكي (Modal) - نظام المراحل ================= */}
       {showAvatarModal && (
-        <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-4 md:p-8 animate-[fadeIn_0.3s_ease-out]" onClick={handleClose}>
-          <div className="w-full max-w-[1200px] h-[85vh] bg-[#050805] rounded-[30px] border border-white/10 shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 sm:bg-black/90 sm:p-4 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
+          
+          <div className="w-full h-[100dvh] sm:h-[90vh] max-w-6xl bg-[#050505] sm:rounded-[32px] sm:border border-white/10 flex flex-col overflow-hidden shadow-2xl relative">
             
-            <div className="flex justify-between items-center p-6 border-b border-white/5 bg-black/40 z-20 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#8DC63F]/20 flex items-center justify-center text-[#8DC63F]"><Dna size={20}/></div>
-                <div><h2 className="text-lg font-extrabold text-white">معمل بناء الأجسام المتقدم</h2><p className="text-[10px] text-green-100/50 font-bold uppercase tracking-widest">Cerrah Body Sculpting</p></div>
+            {/* 1. الهيدر وشريط التقدم */}
+            <div className="shrink-0 bg-[#0a0a0a] z-10">
+              <div className="h-[65px] sm:h-[76px] px-4 border-b border-white/5 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#8DC63F]/10 flex items-center justify-center border border-[#8DC63F]/20 shrink-0">
+                    <Activity size={18} className="text-[#8DC63F]" />
+                  </div>
+                  <div>
+                    <h2 className="text-white font-black text-sm sm:text-base leading-tight">معمل الأجسام المتقدم</h2>
+                    <p className="text-[#8DC63F] text-[9px] sm:text-[10px] font-black tracking-widest uppercase mt-0.5">CERRAH BODY SCULPTING</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowAvatarModal(false)}
+                  className="w-9 h-9 sm:w-10 sm:h-10 bg-white/5 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-full flex items-center justify-center transition-colors border border-white/5 shrink-0"
+                >
+                  <X size={18} />
+                </button>
               </div>
-              <button onClick={handleClose} className="text-white/40 hover:text-white bg-white/5 hover:bg-red-500/20 p-2.5 rounded-full transition-colors"><X size={20} /></button>
+              
+              {/* شريط التقدم (Progress Bar) */}
+              <div className="h-1.5 w-full bg-white/5 relative">
+                <div 
+                  className="absolute top-0 right-0 h-full bg-[#8DC63F] transition-all duration-500 ease-out" 
+                  style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+                ></div>
+              </div>
             </div>
 
-            {isBuilding ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-10 bg-black/20">
-                <div className="relative w-32 h-32 flex items-center justify-center mb-8">
-                  <div className="absolute inset-0 border-4 border-white/5 rounded-full"></div>
-                  <div className="absolute inset-0 border-4 border-[#8DC63F] rounded-full border-t-transparent animate-spin"></div>
-                  <Dna size={40} className="text-[#8DC63F] animate-pulse" />
+            {/* 2. منطقة المحتوى (مقسمة لـ 3D و أسئلة) */}
+            <div className="flex-1 flex flex-col lg:flex-row min-h-0 w-full overflow-hidden">
+              
+              {/* أ. المحاكي 3D (40% من الموبايل) */}
+              <div className="w-full h-[40%] lg:h-full lg:flex-1 shrink-0 relative bg-gradient-to-b from-black/80 to-black/20 border-b lg:border-b-0 lg:border-r border-white/5 overflow-hidden">
+                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 bg-black/80 border border-[#8DC63F]/30 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg backdrop-blur-md">
+                  <span className="text-white font-bold text-[9px] sm:text-[10px] uppercase tracking-wider">Live Preview</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#8DC63F] animate-pulse"></span>
                 </div>
-                <h3 className="text-2xl font-black text-white mb-2 tracking-wide">جاري التكوين...</h3>
-                <p className="text-[#8DC63F] font-bold animate-pulse text-lg">{loadingText}</p>
+                <CerrahAvatar {...avatarProps} />
               </div>
-            ) : (
-              <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-black/20">
+
+              {/* ب. منطقة الأسئلة والمراحل (60% من الموبايل) */}
+              <div className="w-full h-[60%] lg:h-full lg:w-[420px] shrink-0 flex flex-col bg-[#0a0a0a] relative">
                 
-                {/* 👈 التبويبات العلوية (مؤشر بصري فقط - غير قابل للضغط) */}
-                <div className="w-full lg:w-[420px] flex flex-col bg-[#030604] border-l border-white/5 h-full overflow-hidden shadow-2xl z-30">
-                  <div className="flex p-3 gap-2 border-b border-white/5 shrink-0 justify-between">
-                    <div className={`flex-1 flex justify-center py-2.5 rounded-lg font-bold text-[11px] transition-all flex-col items-center gap-1 ${step === 1 ? 'bg-[#8DC63F]/10 text-[#8DC63F] border border-[#8DC63F]/30' : 'text-white/30'}`}><Sliders size={14}/> <span>الأساسيات</span></div>
-                    <div className={`flex-1 flex justify-center py-2.5 rounded-lg font-bold text-[11px] transition-all flex-col items-center gap-1 ${step === 2 ? 'bg-[#8DC63F]/10 text-[#8DC63F] border border-[#8DC63F]/30' : 'text-white/30'}`}><ScanFace size={14}/> <span>الجذع والبطن</span></div>
-                    <div className={`flex-1 flex justify-center py-2.5 rounded-lg font-bold text-[11px] transition-all flex-col items-center gap-1 ${step === 3 ? 'bg-[#8DC63F]/10 text-[#8DC63F] border border-[#8DC63F]/30' : 'text-white/30'}`}><ActivitySquare size={14}/> <span>الجلد والأطراف</span></div>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                    
-                    {step === 1 && (
-                      <div className="animate-[slideUp_0.3s_ease-out]">
-                        <h3 className="text-xl font-black text-white mb-6">البيانات العامة للجسد</h3>
-                        
-                        <div className="flex gap-4 mb-8">
-                           <button onClick={() => setAvatarGender('male')} className={`flex-1 p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${avatarGender === 'male' ? 'bg-[#8DC63F]/10 border-[#8DC63F] text-[#8DC63F]' : 'border-white/5 text-white/50 hover:bg-white/5'}`}><User size={24}/> <span className="font-bold text-sm">ذكر</span></button>
-                           <button onClick={() => setAvatarGender('female')} className={`flex-1 p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${avatarGender === 'female' ? 'bg-[#8DC63F]/10 border-[#8DC63F] text-[#8DC63F]' : 'border-white/5 text-white/50 hover:bg-white/5'}`}><User size={24}/> <span className="font-bold text-sm">أنثى</span></button>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 mb-8">
-                          <div><label className="text-white/50 font-bold mb-2 block text-xs">الوزن الحالي (كجم)</label><input type="number" value={avatarWeight} onChange={(e) => setAvatarWeight(Number(e.target.value))} className="w-full bg-black/60 border border-white/10 rounded-xl p-4 text-center font-black text-white text-lg focus:border-[#8DC63F] outline-none" /></div>
-                          <div><label className="text-white/50 font-bold mb-2 block text-xs">الطول الفعلي (سم)</label><input type="number" value={avatarHeight} onChange={(e) => setAvatarHeight(Number(e.target.value))} className="w-full bg-black/60 border border-white/10 rounded-xl p-4 text-center font-black text-white text-lg focus:border-[#8DC63F] outline-none" /></div>
-                        </div>
-
-                        <div className="mb-6">
-                          <label className="text-white/50 font-bold mb-4 block text-xs">لون البشرة الأساسي</label>
-                          <div className="flex gap-3 justify-between">
-                            {['#5c3826', '#8c593b', '#c48e65', '#e2b999', '#fcdbc4'].map((color) => (
-                              <button key={color} onClick={() => setAvatarSkinTone(color)} className={`w-10 h-10 md:w-12 md:h-12 rounded-full border-4 transition-transform hover:scale-110 ${avatarSkinTone === color ? 'border-[#8DC63F] shadow-[0_0_15px_rgba(141,198,63,0.5)] scale-110' : 'border-transparent'}`} style={{ backgroundColor: color }} />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {step === 2 && (
-                      <div className="animate-[slideUp_0.3s_ease-out]">
-                        <h3 className="text-xl font-black text-white mb-6">مناطق تراكم الدهون</h3>
-                        {renderSlider('استدارة البطن الكلية (الكرش)', 'bellyRound', 'حجم البروز الأمامي للبطن')}
-                        {renderSlider('تراكم دهون أسفل البطن', 'bellyLower', 'الدهون المتمركزة تحت السرة')}
-                        {renderSlider('مقاس الخصر والجوانب', 'loveHandles', 'تراكم الجوانب (Love Handles)')}
-                        {renderSlider('ترهلات وضعف عضلات الصدر', 'chestSag', 'نسبة نزول الصدر أو التثدي')}
-                      </div>
-                    )}
-
-                    {step === 3 && (
-                      <div className="animate-[slideUp_0.3s_ease-out]">
-                        <h3 className="text-xl font-black text-white mb-6">الأطراف وحالة الجلد</h3>
-                        {renderSlider('دهون الذراعين (الزنود)', 'armsFat', 'حجم الكتلة الدهنية')}
-                        {renderSlider('دهون الفخذين والأرداف', 'thighsFat', 'امتلاء النصف السفلي')}
-                        
-                        <div className="mt-8 pt-6 border-t border-white/5">
-                           <h3 className="text-sm font-black text-[#8DC63F] mb-4 uppercase tracking-wider">نسيج وملمس الجلد</h3>
-                           
-                           <div onClick={() => setHasStretchMarks(!hasStretchMarks)} className={`p-4 rounded-2xl cursor-pointer border-2 mb-3 transition-all flex justify-between items-center ${hasStretchMarks ? 'bg-[#8DC63F]/10 border-[#8DC63F]' : 'bg-black/40 border-white/5 hover:border-white/20'}`}>
-                             <div><h4 className="font-black text-white text-sm">علامات التمدد (Stretch Marks)</h4><p className="text-[10px] text-green-100/40 mt-1">خطوط التمدد الناتجة عن تذبذب الوزن</p></div>
-                             <div className={`w-6 h-6 rounded flex items-center justify-center ${hasStretchMarks ? 'bg-[#8DC63F] text-black' : 'bg-black/50'}`}>{hasStretchMarks && '✓'}</div>
-                           </div>
-
-                           <div onClick={() => setHasCellulite(!hasCellulite)} className={`p-4 rounded-2xl cursor-pointer border-2 transition-all flex justify-between items-center ${hasCellulite ? 'bg-[#8DC63F]/10 border-[#8DC63F]' : 'bg-black/40 border-white/5 hover:border-white/20'}`}>
-                             <div><h4 className="font-black text-white text-sm">مظهر السيلوليت (Cellulite)</h4><p className="text-[10px] text-green-100/40 mt-1">تأثير قشر البرتقال على الفخذين والأرداف</p></div>
-                             <div className={`w-6 h-6 rounded flex items-center justify-center ${hasCellulite ? 'bg-[#8DC63F] text-black' : 'bg-black/50'}`}>{hasCellulite && '✓'}</div>
-                           </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 👈 أزرار التنقل (Next / Prev) */}
-                  <div className="p-5 border-t border-white/5 bg-black/60 shrink-0 flex gap-3">
-                     {step > 1 && step < 4 && (
-                       <button onClick={() => setStep(step - 1)} className="px-5 py-4 rounded-xl font-bold text-white bg-white/5 hover:bg-white/10 transition-colors flex items-center gap-2">
-                         <ChevronRight size={18}/>
-                       </button>
-                     )}
-                     
-                     {step === 4 ? (
-                       <button onClick={handleClose} className="btn-glow btn-glow-gold w-full py-4 rounded-xl font-black text-lg shadow-lg">حفظ التكوين وإغلاق</button>
-                     ) : (
-                       <button onClick={() => step < 3 ? setStep(step + 1) : startBuildingAvatar()} className="flex-1 btn-glow btn-glow-gold py-4 rounded-xl font-black shadow-lg flex justify-center items-center gap-2 border-none">
-                         {step < 3 ? 'التالي للحفظ المؤقت' : 'تأكيد وحفظ المجسم'} {step < 3 ? <ChevronLeft size={18}/> : <Sparkles size={18}/>}
-                       </button>
-                     )}
-                  </div>
+                {/* عنوان المرحلة الحالية */}
+                <div className="shrink-0 p-5 border-b border-white/5 text-center">
+                  <span className="text-[#8DC63F] text-[10px] font-black tracking-wider uppercase mb-1 block">الخطوة {currentStep} من {totalSteps}</span>
+                  <h3 className="text-xl font-black text-white">{stepTitles[currentStep - 1].title}</h3>
+                  <p className="text-white/40 text-xs font-bold mt-1">{stepTitles[currentStep - 1].desc}</p>
                 </div>
 
-                {/* 👈 منطقة عرض المجسم المباشر (تأخذ باقي الشاشة، وتم ضبط الإضاءة والخلفية فيها) */}
-                <div className="flex-1 relative bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0a160d] to-black flex items-center justify-center min-h-[40vh]">
-                  <Avatar3D 
-                    gender={avatarGender} weight={avatarWeight} height={avatarHeight} skinTone={avatarSkinTone}
-                    bellyRound={morphs.bellyRound / 100} bellyLower={morphs.bellyLower / 100} bellyUpper={morphs.bellyUpper / 100}
-                    loveHandles={morphs.loveHandles / 100} doubleChin={morphs.doubleChin / 100} chestSag={morphs.chestSag / 100}
-                    armsFat={morphs.armsFat / 100} armsSag={morphs.armsSag / 100} thighsFat={morphs.thighsFat / 100}
-                    calvesFat={morphs.calvesFat / 100} glutesFat={morphs.glutesFat / 100}
-                    hasStretchMarks={hasStretchMarks} hasCellulite={hasCellulite}
-                  />
-                  <div className="absolute top-6 right-6 bg-black/80 backdrop-blur-md px-5 py-2.5 rounded-full border border-[#8DC63F]/20 flex items-center gap-3 z-10">
-                    <div className="w-2 h-2 bg-[#8DC63F] rounded-full animate-pulse shadow-[0_0_8px_#8DC63F]"></div>
-                    <span className="text-white font-bold text-xs tracking-wider">LIVE PREVIEW</span>
-                  </div>
+                {/* محتوى المرحلة (Scrollable) */}
+                <div className="flex-1 overflow-y-auto p-5 min-h-0 custom-scrollbar flex flex-col">
+                  
+                  {currentStep === 1 && (
+                    <div className="flex-1 flex flex-col justify-center gap-4 animate-[fadeIn_0.3s_ease-out]">
+                      <button onClick={() => setAvatarProps({...avatarProps, gender: 'male'})} className={`p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-3 transition-all ${avatarProps.gender === 'male' ? 'bg-[#8DC63F]/10 border-[#8DC63F] text-[#8DC63F] scale-105 shadow-[0_0_20px_rgba(141,198,63,0.15)]' : 'bg-black/40 border-white/5 text-white/50 hover:border-white/20 hover:scale-105'}`}>
+                        <User size={40} />
+                        <span className="font-black text-lg">ذكر (Male)</span>
+                      </button>
+                      <button onClick={() => setAvatarProps({...avatarProps, gender: 'female'})} className={`p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-3 transition-all ${avatarProps.gender === 'female' ? 'bg-[#8DC63F]/10 border-[#8DC63F] text-[#8DC63F] scale-105 shadow-[0_0_20px_rgba(141,198,63,0.15)]' : 'bg-black/40 border-white/5 text-white/50 hover:border-white/20 hover:scale-105'}`}>
+                        <User size={40} />
+                        <span className="font-black text-lg">أنثى (Female)</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {currentStep === 2 && (
+                    <div className="flex-1 flex flex-col justify-center gap-6 animate-[fadeIn_0.3s_ease-out]">
+                      <div>
+                        <label className="block text-sm font-bold text-white/70 mb-3 text-center">الوزن الحالي (كجم)</label>
+                        <input type="number" value={avatarProps.weight} onChange={(e) => setAvatarProps({...avatarProps, weight: Number(e.target.value)})} className="w-full bg-black/40 border-2 border-white/10 rounded-2xl p-4 text-white text-center font-black text-xl outline-none focus:border-[#8DC63F]/50 transition-colors" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-white/70 mb-3 text-center">الطول الفعلي (سم)</label>
+                        <input type="number" value={avatarProps.height} onChange={(e) => setAvatarProps({...avatarProps, height: Number(e.target.value)})} className="w-full bg-black/40 border-2 border-white/10 rounded-2xl p-4 text-white text-center font-black text-xl outline-none focus:border-[#8DC63F]/50 transition-colors" />
+                      </div>
+                    </div>
+                  )}
+
+                  {currentStep === 3 && (
+                    <div className="flex-1 flex flex-col justify-center animate-[fadeIn_0.3s_ease-out]">
+                      <div className="grid grid-cols-2 gap-4">
+                        {skinTones.map((color) => (
+                          <button 
+                            key={color} 
+                            onClick={() => setAvatarProps({...avatarProps, skinTone: color})}
+                            className={`h-24 rounded-2xl border-2 transition-all duration-300 relative ${avatarProps.skinTone === color ? 'border-[#8DC63F] scale-105 shadow-[0_0_20px_rgba(141,198,63,0.3)]' : 'border-transparent hover:scale-105'}`}
+                            style={{ backgroundColor: color }}
+                          >
+                            {avatarProps.skinTone === color && <CheckCircle2 className="absolute top-2 right-2 text-[#8DC63F] bg-black/50 rounded-full" size={20} />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {currentStep === 4 && (
+                    <div className="space-y-5 my-auto animate-[fadeIn_0.3s_ease-out]">
+                      {[
+                        { label: 'استدارة البطن الكلية', key: 'bellyRound' },
+                        { label: 'الترهل السفلي للبطن', key: 'bellyLower' },
+                        { label: 'الدهون العلوية للبطن', key: 'bellyUpper' },
+                        { label: 'دهون الأجناب (Love Handles)', key: 'loveHandles' },
+                        { label: 'ترهل منطقة الصدر', key: 'chestSag' },
+                      ].map((item) => (
+                        <div key={item.key} className="bg-black/30 p-4 rounded-2xl border border-white/5">
+                          <div className="flex justify-between text-[11px] sm:text-xs font-bold text-white mb-3">
+                            <span>{item.label}</span>
+                            <span className="text-[#8DC63F]">{Math.round((avatarProps as any)[item.key] * 100)}%</span>
+                          </div>
+                          <input 
+                            type="range" min="0" max="1" step="0.05" 
+                            value={(avatarProps as any)[item.key]} 
+                            onChange={(e) => setAvatarProps({...avatarProps, [item.key]: Number(e.target.value)})}
+                            className="w-full accent-[#8DC63F] h-2 bg-white/10 rounded-lg appearance-none cursor-pointer" 
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {currentStep === 5 && (
+                    <div className="space-y-5 my-auto animate-[fadeIn_0.3s_ease-out]">
+                      {[
+                        { label: 'الدهون في الذراعين', key: 'armsFat' },
+                        { label: 'ترهل الذراعين', key: 'armsSag' },
+                        { label: 'الدهون في الفخذين', key: 'thighsFat' },
+                        { label: 'الدهون في الأرداف', key: 'glutesFat' },
+                        { label: 'الذقن المزدوج (اللغد)', key: 'doubleChin' },
+                      ].map((item) => (
+                        <div key={item.key} className="bg-black/30 p-4 rounded-2xl border border-white/5">
+                          <div className="flex justify-between text-[11px] sm:text-xs font-bold text-white mb-3">
+                            <span>{item.label}</span>
+                            <span className="text-[#8DC63F]">{Math.round((avatarProps as any)[item.key] * 100)}%</span>
+                          </div>
+                          <input 
+                            type="range" min="0" max="1" step="0.05" 
+                            value={(avatarProps as any)[item.key]} 
+                            onChange={(e) => setAvatarProps({...avatarProps, [item.key]: Number(e.target.value)})}
+                            className="w-full accent-[#8DC63F] h-2 bg-white/10 rounded-lg appearance-none cursor-pointer" 
+                          />
+                        </div>
+                      ))}
+                      <div className="pt-2">
+                        <label className="flex items-center gap-3 bg-[#8DC63F]/5 p-4 rounded-2xl border border-[#8DC63F]/20 cursor-pointer transition-colors">
+                          <input type="checkbox" checked={avatarProps.hasCellulite} onChange={(e) => setAvatarProps({...avatarProps, hasCellulite: e.target.checked})} className="accent-[#8DC63F] w-5 h-5 rounded" />
+                          <span className="text-sm font-bold text-white">إظهار السيلوليت (Cellulite) في الجلد</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. أزرار التنقل (Footer ثابت لا يختفي) */}
+                <div className="shrink-0 p-4 border-t border-white/10 bg-[#0a0a0a] z-10 flex gap-3">
+                  {currentStep > 1 && (
+                    <button 
+                      onClick={handlePrev}
+                      className="w-1/3 bg-white/5 hover:bg-white/10 text-white border border-white/10 py-3.5 sm:py-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all duration-300"
+                    >
+                      <ChevronRight size={18} /> السابق
+                    </button>
+                  )}
+                  <button 
+                    onClick={handleNext}
+                    className="flex-1 bg-[#8DC63F] hover:bg-[#7ab036] text-black border border-[#8DC63F]/30 py-3.5 sm:py-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_0_20px_rgba(141,198,63,0.15)] group"
+                  >
+                    {currentStep < totalSteps ? (
+                      <>التالي <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /></>
+                    ) : (
+                      <>حفظ المجسم وإنهاء <CheckCircle2 size={18} /></>
+                    )}
+                  </button>
                 </div>
 
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
     </>
   );
-};
-
-export default React.memo(BodySimulator);
+}
